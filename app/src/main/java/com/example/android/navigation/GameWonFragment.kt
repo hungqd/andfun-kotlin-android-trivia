@@ -16,24 +16,20 @@
 
 package com.example.android.navigation
 
-import android.content.ActivityNotFoundException
 import android.content.Intent
-import androidx.databinding.DataBindingUtil
 import android.os.Bundle
-import androidx.fragment.app.Fragment
-import androidx.core.app.ShareCompat
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import androidx.core.app.ShareCompat
+import androidx.core.view.MenuProvider
+import androidx.databinding.DataBindingUtil
+import androidx.fragment.app.Fragment
 import androidx.navigation.findNavController
 import com.example.android.navigation.databinding.FragmentGameWonBinding
-import android.content.pm.ResolveInfo
-import android.content.pm.PackageManager
-
 
 
 class GameWonFragment : Fragment() {
@@ -46,13 +42,12 @@ class GameWonFragment : Fragment() {
             view.findNavController().navigate(
                     GameWonFragmentDirections.actionGameWonFragmentToGameFragment())
         }
-        setHasOptionsMenu(true)
         return binding.root
     }
 
     private fun getShareIntent() : Intent {
         val args = GameWonFragmentArgs.fromBundle(requireArguments())
-        return ShareCompat.IntentBuilder.from(activity!!)
+        return ShareCompat.IntentBuilder(requireContext())
                 .setText(getString(R.string.share_success_text, args.numCorrect, args.numQuestions))
                 .setType("text/plain")
                 .intent
@@ -62,20 +57,32 @@ class GameWonFragment : Fragment() {
         startActivity(getShareIntent())
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateOptionsMenu(menu, inflater)
-        inflater.inflate(R.menu.winner_menu, menu)
-        // check if the activity resolves
-        if (null == getShareIntent().resolveActivity(requireActivity().packageManager)) {
-            // hide the menu item if it doesn't resolve
-            menu.findItem(R.id.share)?.isVisible = false
-        }
-    }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(
+            object : MenuProvider {
+                override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                    menuInflater.inflate(R.menu.winner_menu, menu)
+                    // check if the activity resolves
+                    if (null == getShareIntent().resolveActivity(requireActivity().packageManager)) {
+                        // hide the menu item if it doesn't resolve
+                        menu.findItem(R.id.share)?.isVisible = false
+                    }
+                }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.share -> shareSuccess()
-        }
-        return super.onOptionsItemSelected(item)
+                override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                    return when (menuItem.itemId) {
+                        R.id.share -> {
+                            shareSuccess()
+                            true
+                        }
+
+                        else -> false
+                    }
+                }
+
+            },
+            viewLifecycleOwner,
+        )
     }
 }
